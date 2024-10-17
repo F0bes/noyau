@@ -48,6 +48,7 @@ set(kernel_SOURCES
 	src/hw_interrupt/v_interrupt.cpp
 	src/hw_interrupt/v_common.cpp
 	src/hw_interrupt/common.cpp
+	src/intc/intc.cpp
 	src/sio/sio.cpp
 	src/timer/timer.cpp
 	src/syscall/syscall.cpp

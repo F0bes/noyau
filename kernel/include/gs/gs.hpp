@@ -12,4 +12,10 @@ namespace gs
 	void gs_init();
 
 	void vterm_init();
+
+	// Hooks the VSYNC interrupt and draws the vterm buffer to the screen
+	void vterm_hook();
+	void vterm_release();
+	void vterm_putc(char c);
+
 } // namespace gs

@@ -99,7 +99,7 @@ static void v_int_vbon(void)
 	u32 i_mask = _l32(0x1000f010);
 	if (i_mask & (1 << 2))
 	{
-		printd("VBOF interrupt\n");
+		printd("VBON interrupt\n");
 	}
 }
 
@@ -149,14 +149,22 @@ void _vec_c_interrupt(void)
 	{
 		const u32 i_stat = _l32(0x1000f000);
 		const u32 lz = _plzcw(i_stat) - 15;
+		const u32 cause = 15 - lz;
+
 		if (lz > 15)
 		{
 			printe("v_interrupt INT0 out of range. I_STAT = %x\n", i_stat);
 		}
 		else
 		{
-			intc_dispatch[lz]();
-			_s32(0x1000f000, 1 << (15 - lz));
+
+			u32 i_mask = _l32(I_MASK);
+			if (i_mask & (1 << (cause)))
+			{
+				intc::handle_interrupt(static_cast<intc::CAUSE>(cause));
+			}
+			//intc_dispatch[lz]();
+			_s32(0x1000f000, 1 << (cause));
 		}
 	}
 

@@ -3,6 +3,7 @@
 #include "memutil.hpp"
 
 #include "sio/sio.hpp"
+#include "gs/gs.hpp"
 
 namespace sio
 {
@@ -68,4 +69,5 @@ namespace sio
 void _putchar(char c)
 {
 	sio::sio_putc(c);
+	gs::vterm_putc(c);
 }

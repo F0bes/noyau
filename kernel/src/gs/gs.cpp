@@ -11,6 +11,8 @@
 #include "fs/vfs.hpp"
 #include "fs/vdev.hpp"
 
+#include "intc/intc.hpp"
+
 namespace gs
 {
 	vdev::vnode_t fb_dev = {
@@ -224,17 +226,25 @@ namespace gs
 		printk("### GS Initialized\n");
 
 		fb_init();
-		vterm_init();
 	}
 
 	// data/vterm_font_itex.c
 	extern "C" u32 size_vterm_font_itex;
 	extern "C" u8 vterm_font_itex[];
 
+	// 640/8 = 80
+	// 448/16 = 28
+	static char vterm_buf[80 * 28];
+	static char* vterm_buf_ptr = vterm_buf;
+	static const char* vterm_buf_end = vterm_buf + 80 * 28;
 	void vterm_reset()
 	{
+		for (int i = 0; i < 80 * 28; i++)
+			vterm_buf[i] = '\0';
 	}
 
+	static u32 vterm_itex_ptr = 0;
+	static u32 vterm_pal_ptr = 0x56000 >> 6;
 	void vterm_init()
 	{
 		// Upload the font itex
@@ -244,9 +254,8 @@ namespace gs
 		const u32 tex_qword_cnt = (size_vterm_font_itex / 16) + 1;
 
 		dma_pack_cnt(q, 6, 0, 0, 0);
-		printk("DMATag %08X %08X %08X %08X", q->w[0], q->w[1], q->w[2], q->w[3]);
 		pack_giftag(q, {4, 0, 0, 0, 0, 1, GIF_REG_A_D});
-		pack_bitbltbuf(q, {0, 0, 0, 0, 10, 0x2C}); // 4HH 0x2C
+		pack_bitbltbuf(q, {0, 0, 0, vterm_itex_ptr, 10, 0x2C}); // 4HH 0x2C
 		pack_trxpos(q, {0, 0, 0, 0, 0});
 		pack_trxreg(q, {128, 256});
 		pack_trxdir(q, {0});
@@ -270,7 +279,7 @@ namespace gs
 
 		q = gif_packet;
 		pack_giftag(q, {5, 0, 0, 0, 0, 1, GIF_REG_A_D});
-		pack_bitbltbuf(q, {0, 0, 0, 0x56000 >> 6, 0, 0x00});
+		pack_bitbltbuf(q, {0, 0, 0, vterm_pal_ptr, 0, 0x00});
 		pack_trxpos(q, {0, 0, 0, 0, 0});
 		pack_trxreg(q, {16, 1});
 		pack_trxdir(q, {0});
@@ -291,7 +300,7 @@ namespace gs
 		q = gif_packet;
 
 		pack_giftag(q, {7, 1, 1, 0x06 | 1 << 4 | 1 << 8, 0, 1, GIF_REG_A_D});
-		pack_tex0(q, {0, 10, 0x2C, 7, 8, 1, 1, 0x56000 >> 6, 0, 1, 0, 1});
+		pack_tex0(q, {vterm_itex_ptr, 10, 0x2C, 7, 8, 1, 1, 0x56000 >> 6, 0, 1, 0, 1});
 		pack_test(q, {1, 7, 0, 0, 0, 0, 1, 1});
 		pack_rgbaq(q, {0x80, 0x80, 0, 0xFF, 0x3f800000});
 		pack_uv(q, {0, 0});
@@ -307,7 +316,111 @@ namespace gs
 			;
 
 		printk("### VTERM Font Displayed\n");
-
 		delete[] gif_packet;
+	}
+
+	// interrupt handler typdef intc::hander_t
+
+	static s32 vterm_vsync_handler_id = -1;
+
+	static intc::handler_fun_t vterm_vsync_handler = [](u32 cause) {
+		qword_t gif_packet_stack[20];
+		qword_t* gif_packet = (qword_t*)_kseg1(gif_packet_stack);
+		qword_t* q = gif_packet;
+		pack_giftag(q, {3, 1, 1, 0x06 | (0 << 4), 0, 1, GIF_REG_A_D});
+		pack_rgbaq(q, {0x7F, 0x7F, 0, 0x7F, 0});
+		pack_xyz(q, {0, 0, 1});
+		pack_xyz(q, {640 << 4, 448 << 4, 1});
+		_s32(GIF_QWC, q - gif_packet);
+		_s32(GIF_MADR, _phys(gif_packet));
+		_s32(GIF_CHCR, 0x101);
+		while (_l32(GIF_CHCR) & 0x100)
+			;
+		q = gif_packet;
+		pack_giftag(q, {4, 1, 1, 0x06 | (1 << 4) | (1 << 8), 0, 1, GIF_REG_A_D});
+		qword_t* reg_start = q;
+		u32 x_cord = 0;
+		u32 y_cord = 0;
+		for (size_t i = 0; i < sizeof(vterm_buf); i++)
+		{
+			if (x_cord >= 80)
+			{
+				x_cord = 0;
+				y_cord++;
+			}
+
+			const char c = vterm_buf[i];
+
+			if (c == ' ')
+			{
+				x_cord++;
+				continue;
+			}
+			else if (c == '\0')
+			{
+				break;
+			}
+
+			const u32 x = c % 16;
+			const u32 y = c / 16;
+
+			pack_uv(q, {(x * 8) << 4, (y * 16) << 4});
+			pack_xyz(q, {x_cord * 8 << 4, y_cord * 16 << 4, 1});
+			pack_uv(q, {((x * 8) + 7) << 4, ((y * 16) + 15) << 4});
+			pack_xyz(q, {((x_cord * 8) + 7) << 4, ((y_cord * 16) + 16) << 4, 1});
+
+			while (_l32(GIF_CHCR) & 0x100)
+				;
+			_s32(GIF_QWC, q - gif_packet);
+			_s32(GIF_MADR, _phys(gif_packet));
+			_s32(GIF_CHCR, 0x101);
+
+			q = reg_start;
+			x_cord++;
+		}
+	};
+
+	void vterm_hook()
+	{
+		//vterm_vsync_handler(0);
+		intc::register_handler(intc::CAUSE::VBON, vterm_vsync_handler);
+		intc::enable_interrupt(intc::CAUSE::VBON);
+	}
+
+	void vterm_release()
+	{
+		if (vterm_vsync_handler_id != -1)
+		{
+			intc::unregister_handler(intc::CAUSE::VBON, vterm_vsync_handler_id);
+			vterm_vsync_handler_id = -1;
+		}
+	}
+
+	void vterm_putc(char c)
+	{
+		if (vterm_buf_ptr >= vterm_buf_end)
+		{
+			vterm_buf_ptr = vterm_buf;
+			for (int i = 0; i < 80; i++)
+				vterm_buf_ptr[i] = ' ';
+		}
+
+		if (c == '\n')
+		{
+			if (vterm_buf_ptr + 80 >= vterm_buf_end)
+				vterm_buf_ptr = vterm_buf;
+			vterm_buf_ptr += 80 - ((vterm_buf_ptr - &vterm_buf[0]) % 80);
+		}
+		else
+		{
+			if ((vterm_buf_ptr - &vterm_buf[0]) % 80 == 0)
+			{
+				for (int i = 0; i < 80; i++)
+					vterm_buf_ptr[i] = ' ';
+			}
+
+			*vterm_buf_ptr = c;
+			vterm_buf_ptr++;
+		}
 	}
 } // namespace gs
