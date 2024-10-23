@@ -2,6 +2,7 @@
 
 #include "intc/intc.hpp"
 #include "mmio/intc.hpp"
+#include "mmio/dma.hpp"
 #include "debug/debug.hpp"
 #include "timer/timer.hpp"
 
@@ -157,7 +158,6 @@ void _vec_c_interrupt(void)
 		}
 		else
 		{
-
 			u32 i_mask = _l32(I_MASK);
 			if (i_mask & (1 << (cause)))
 			{
@@ -171,7 +171,21 @@ void _vec_c_interrupt(void)
 	// INT1 (DMAC)
 	else if ((cause >> 11) & 1)
 	{
-		printe("v_interrupt INT1 not implemented\n");
+		const u32 d_stat = _l32(D_STAT) & 0x3FF;
+		// 9 channels
+		const u32 lz = _plzcw(d_stat) - 15;
+		const u32 cause = 15 - lz;
+
+		if(cause > intc::DMAC_CAUSE_CNT)
+		{
+			printe("v_interrupt INT1 out of range. D_STAT = %x\n", d_stat);
+		}
+		else
+		{
+			intc::handle_dmac_interrupt(static_cast<intc::DMAC_CAUSE>(cause));
+			_s32(D_STAT, 1 << cause);
+		}
+		//while(1){};
 	}
 
 	// COP0 timer interrupt

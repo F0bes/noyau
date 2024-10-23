@@ -31,10 +31,17 @@ struct ee_ptr_t
 {
 	u32 address;
 
+	constexpr ee_ptr_t() : address(0) {}
 	constexpr ee_ptr_t(u32 addr) : address(addr) {}
 	constexpr ee_ptr_t(void* ptr) : address(reinterpret_cast<u32>(ptr)) {}
 
 	constexpr operator u32() const { return address; }
 };
 
+typedef ee_ptr_t iop_ptr_t;
+
 #endif
+
+#define STRUCT_PACKED __attribute__((packed))
+#define STRUCT_ALIGNED __attribute__((aligned(16)))
+#define STRUCT_ALIGNED_PACKED __attribute__((packed, aligned(16)))

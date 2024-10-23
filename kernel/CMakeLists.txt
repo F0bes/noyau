@@ -49,6 +49,7 @@ set(kernel_SOURCES
 	src/hw_interrupt/v_common.cpp
 	src/hw_interrupt/common.cpp
 	src/intc/intc.cpp
+	src/sif/sif.cpp
 	src/sio/sio.cpp
 	src/timer/timer.cpp
 	src/syscall/syscall.cpp
@@ -74,6 +75,7 @@ set(kernel_HEADERS
 	include/mmio/gs.hpp
 	include/mmio/sif.hpp
 	include/mmio/intc.hpp
+	include/sif/sif.hpp
 	include/sio/sio.hpp
 	include/syscall/syscall.hpp
 	include/timer/timer.hpp
