@@ -20,7 +20,7 @@ namespace gs
 		.open = nullptr,
 		.close = nullptr,
 		.read = nullptr, // TODO: GS download??
-		.write = [](int fdnum, const void* buf, size_t count) -> int {
+		.write = [](s32 fdnum, const void* buf, size_t count) -> s32 {
 			// This is /pretty damn slow/ on a real PS2. Ideally we could write directly to the
 			// GIF FIFO. I couldn't get it to work so DMA transfers are good enough
 			// for now.
@@ -65,7 +65,7 @@ namespace gs
 			fd.pos += num_pixels;
 			return count;
 		},
-		.seek = [](int fdnum, s64 offset, int whence) -> int {
+		.seek = [](s32 fdnum, s64 offset, s32 whence) -> s32 {
 			auto& fd = vfs::get_fd(fdnum);
 			switch (whence)
 			{
@@ -239,7 +239,7 @@ namespace gs
 	static const char* vterm_buf_end = vterm_buf + 80 * 28;
 	void vterm_reset()
 	{
-		for (int i = 0; i < 80 * 28; i++)
+		for (s32 i = 0; i < 80 * 28; i++)
 			vterm_buf[i] = '\0';
 	}
 
@@ -401,7 +401,7 @@ namespace gs
 		if (vterm_buf_ptr >= vterm_buf_end)
 		{
 			vterm_buf_ptr = vterm_buf;
-			for (int i = 0; i < 80; i++)
+			for (s32 i = 0; i < 80; i++)
 				vterm_buf_ptr[i] = ' ';
 		}
 
@@ -415,7 +415,7 @@ namespace gs
 		{
 			if ((vterm_buf_ptr - &vterm_buf[0]) % 80 == 0)
 			{
-				for (int i = 0; i < 80; i++)
+				for (s32 i = 0; i < 80; i++)
 					vterm_buf_ptr[i] = ' ';
 			}
 

@@ -58,16 +58,16 @@ namespace vdev
 
 	vnode_t stdout_vnode = {
 		.name = "/dev/stdout",
-		.open = [](int flags) -> int {
+		.open = [](s32 flags) -> s32 {
 			return 0;
 		},
-		.close = [](int fd) -> int {
+		.close = [](s32 fd) -> s32 {
 			return 0;
 		},
-		.read = [](int fd, void* buf, size_t count) -> int {
+		.read = [](s32 fd, void* buf, size_t count) -> s32 {
 			return 0;
 		},
-		.write = [](int fd, const void* buf, size_t count) -> int {
+		.write = [](s32 fd, const void* buf, size_t count) -> s32 {
 			printk("%s", (const char*)buf);
 			return count;
 		},
@@ -75,29 +75,29 @@ namespace vdev
 
 	vnode_t null_vnode = {
 		.name = "/dev/null",
-		.open = [](int flags) -> int {
+		.open = [](s32 flags) -> s32 {
 			return 0;
 		},
-		.close = [](int fd) -> int {
+		.close = [](s32 fd) -> s32 {
 			return 0;
 		},
-		.read = [](int fd, void* buf, size_t count) -> int {
+		.read = [](s32 fd, void* buf, size_t count) -> s32 {
 			return 0;
 		},
-		.write = [](int fd, const void* buf, size_t count) -> int {
+		.write = [](s32 fd, const void* buf, size_t count) -> s32 {
 			return count;
 		},
 		.seek = nullptr};
 
 	vnode_t random_vnode = {
 		.name = "/dev/random",
-		.open = [](int flags) -> int {
+		.open = [](s32 flags) -> s32 {
 			return 0;
 		},
-		.close = [](int fd) -> int {
+		.close = [](s32 fd) -> s32 {
 			return 0;
 		},
-		.read = [](int fd, void* buf, size_t count) -> int {
+		.read = [](s32 fd, void* buf, size_t count) -> s32 {
 			// Just use processor cycle counter as a source of randomness
 			u32 cop0_count;
 			asm volatile("mfc0 %0, $9" : "=r"(cop0_count));
@@ -113,27 +113,27 @@ namespace vdev
 			}
 			return count;
 		},
-		.write = [](int fd, const void* buf, size_t count) -> int {
+		.write = [](s32 fd, const void* buf, size_t count) -> s32 {
 			return count;
 		},
 		.seek = nullptr};
 
 	vnode_t zero_vnode = {
 		.name = "/dev/zero",
-		.open = [](int flags) -> int {
+		.open = [](s32 flags) -> s32 {
 			return 0;
 		},
-		.close = [](int fd) -> int {
+		.close = [](s32 fd) -> s32 {
 			return 0;
 		},
-		.read = [](int fd, void* buf, size_t count) -> int {
+		.read = [](s32 fd, void* buf, size_t count) -> s32 {
 			for (size_t i = 0; i < count; i++)
 			{
 				((u8*)buf)[i] = 0;
 			}
 			return count;
 		},
-		.write = [](int fd, const void* buf, size_t count) -> int {
+		.write = [](s32 fd, const void* buf, size_t count) -> s32 {
 			return count;
 		},
 		.seek = nullptr};

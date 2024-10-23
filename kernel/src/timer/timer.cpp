@@ -16,7 +16,7 @@ namespace timer
 
 	constexpr u8 TIMER_COUNT = 4;
 
-	template <int n>
+	template <s32 n>
 	constexpr void init_timer_n()
 	{
 		Timer<n> timer;
@@ -29,7 +29,7 @@ namespace timer
 		}
 	}
 
-	template <int n>
+	template <s32 n>
 	constexpr void init_n_timers()
 	{
 		if constexpr (n >= 0)
@@ -52,7 +52,7 @@ namespace timer
 		.name = "/dev/tim" #n "/count", \
 		.open = nullptr, \
 		.close = nullptr, \
-		.read = [](int fd, void* buf, size_t count) -> int { \
+		.read = [](s32 fd, void* buf, size_t count) -> s32 { \
 			if (count != sizeof(u16)) \
 			{ \
 				return -1; \
@@ -62,7 +62,7 @@ namespace timer
 			*(u16*)buf = val; \
 			return sizeof(val); \
 		}, \
-		.write = [](int fd, const void* buf, size_t count) -> int { \
+		.write = [](s32 fd, const void* buf, size_t count) -> s32 { \
 			if (count != sizeof(u16)) \
 			{ \
 				return -1; \
@@ -78,13 +78,13 @@ namespace timer
 		.name = "/dev/tim" #n "/compare", \
 		.open = nullptr, \
 		.close = nullptr, \
-		.read = [](int fd, void* buf, size_t count) -> int { \
+		.read = [](s32 fd, void* buf, size_t count) -> s32 { \
 			auto timer = Timer<n>(); \
 			u16 val = timer.getCompare(); \
 			*(u16*)buf = val; \
 			return sizeof(u16); \
 		}, \
-		.write = [](int fd, const void* buf, size_t count) -> int { \
+		.write = [](s32 fd, const void* buf, size_t count) -> s32 { \
 			auto timer = Timer<n>(); \
 			auto val = *(u32*)buf; \
 			timer.setCompare(val); \
@@ -96,7 +96,7 @@ namespace timer
 		.name = "/dev/tim" #n "/mode", \
 		.open = nullptr, \
 		.close = nullptr, \
-		.read = [](int fd, void* buf, size_t count) -> int { \
+		.read = [](s32 fd, void* buf, size_t count) -> s32 { \
 			if (count != sizeof(u16)) \
 			{ \
 				return -1; \
@@ -106,7 +106,7 @@ namespace timer
 			*(u16*)buf = val; \
 			return sizeof(u16); \
 		}, \
-		.write = [](int fd, const void* buf, size_t count) -> int { \
+		.write = [](s32 fd, const void* buf, size_t count) -> s32 { \
 			if (count != sizeof(u16)) \
 			{ \
 				return -1; \
@@ -123,7 +123,7 @@ namespace timer
 		.name = "/dev/tim" #n "/hold", \
 		.open = nullptr, \
 		.close = nullptr, \
-		.read = [](int fd, void* buf, size_t count) -> int { \
+		.read = [](s32 fd, void* buf, size_t count) -> s32 { \
 			if (count != sizeof(u16)) \
 			{ \
 				return -1; \
@@ -133,7 +133,7 @@ namespace timer
 			*(u16*)buf = val; \
 			return sizeof(u16); \
 		}, \
-		.write = [](int fd, const void* buf, size_t count) -> int { \
+		.write = [](s32 fd, const void* buf, size_t count) -> s32 { \
 			if (count != sizeof(u16)) \
 			{ \
 				return -1; \

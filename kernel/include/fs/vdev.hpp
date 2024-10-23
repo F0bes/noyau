@@ -12,11 +12,11 @@ namespace vdev
 	struct vnode_t
 	{
 		const char* name;
-		int (*open)(int flags);
-		int (*close)(int fd);
-		int (*read)(int fd, void* buf, size_t count);
-		int (*write)(int fd, const void* buf, size_t count);
-		int (*seek)(int fd, s64 offset, int whence);
+		s32 (*open)(s32 flags);
+		s32 (*close)(s32 fd);
+		s32 (*read)(s32 fd, void* buf, size_t count);
+		s32 (*write)(s32 fd, const void* buf, size_t count);
+		s32 (*seek)(s32 fd, s64 offset, s32 whence);
 	};
 
 	void vdev_init();

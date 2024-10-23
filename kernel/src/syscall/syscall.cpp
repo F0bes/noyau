@@ -67,7 +67,7 @@ namespace syscall
 		//	printi("sys_open\n");
 		auto name = GET_ARG<const char*, 0>(frame);
 
-		int fd = vfs::open(name, 0);
+		s32 fd = vfs::open(name, 0);
 		if (fd < 0)
 		{
 			printe("open failed code %d\n", fd);
@@ -80,7 +80,7 @@ namespace syscall
 	void sys_close(ee_frame_t* frame)
 	{
 		auto fd = GET_ARG<int, 0>(frame);
-		int ret = vfs::close(fd);
+		s32 ret = vfs::close(fd);
 		frame->v0.d[1] = 0;
 		frame->v0.d[0] = ret;
 	}
@@ -98,9 +98,9 @@ namespace syscall
 	}
 } // namespace syscall
 
-int sys_read(int fd, u8* buf, size_t count)
+s32 sys_read(s32 fd, u8* buf, size_t count)
 {
-	int ret;
+	s32 ret;
 	asm volatile(
 		"move $a0, %1\n"
 		"move $a1, %2\n"
@@ -113,9 +113,9 @@ int sys_read(int fd, u8* buf, size_t count)
 	return ret;
 }
 
-int sys_write(int fd, const u8* buf, size_t count)
+s32 sys_write(s32 fd, const u8* buf, size_t count)
 {
-	int ret;
+	s32 ret;
 	asm volatile(
 		"move $a0, %1\n"
 		"move $a1, %2\n"
@@ -128,9 +128,9 @@ int sys_write(int fd, const u8* buf, size_t count)
 	return ret;
 }
 
-int sys_open(const char* name, int flags)
+s32 sys_open(const char* name, s32 flags)
 {
-	int ret;
+	s32 ret;
 	asm volatile(
 		"move $a0, %1\n"
 		"move $a1, %2\n"
@@ -142,9 +142,9 @@ int sys_open(const char* name, int flags)
 	return ret;
 }
 
-int sys_close(int fd)
+s32 sys_close(s32 fd)
 {
-	int ret;
+	s32 ret;
 	asm volatile(
 		"move $a0, %1\n"
 		"syscall 3\n"
@@ -155,9 +155,9 @@ int sys_close(int fd)
 	return ret;
 }
 
-s64 sys_seek(int fd, s64 offset, int whence)
+s64 sys_seek(s32 fd, s64 offset, s32 whence)
 {
-	int ret;
+	s32 ret;
 	asm volatile(
 		"move $a0, %1\n"
 		"move $a1, %2\n"

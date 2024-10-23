@@ -4,10 +4,10 @@
 
 #include "hw_interrupt/common.hpp"
 
-int sys_read(int fd, u8* buf, size_t count);
-int sys_write(int fd, const u8* buf, size_t count);
-int sys_open(const char* name, int flags);
-int sys_close(int fd);
+s32 sys_read(s32 fd, u8* buf, size_t count);
+s32 sys_write(s32 fd, const u8* buf, size_t count);
+s32 sys_open(const char* name, s32 flags);
+s32 sys_close(s32 fd);
 
 namespace syscall
 {

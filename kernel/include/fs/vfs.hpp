@@ -6,13 +6,13 @@
 
 namespace vfs
 {
-	constexpr int MAX_FD = 128;
+	constexpr s32 MAX_FD = 128;
 
 	struct file_descriptor_t
 	{
 		vdev::vnode_t* vnode;
-		int flags;
-		int refs;
+		s32 flags;
+		s32 refs;
 		s64 pos;
 	};
 
@@ -25,13 +25,13 @@ namespace vfs
 
 	void vfs_init();
 
-	int fd_alloc(vdev::vnode_t* vnode, int flags);
-	void fd_free(int fd);
-	file_descriptor_t& get_fd(int fd);
+	s32 fd_alloc(vdev::vnode_t* vnode, s32 flags);
+	void fd_free(s32 fd);
+	file_descriptor_t& get_fd(s32 fd);
 
-	int open(const char* name, int flags);
-	int close(int fd);
-	size_t read(int fd, void* buf, size_t count);
-	size_t write(int fd, const void* buf, size_t count);
-	s64 seek(int fd, s64 offset, int whence);
+	s32 open(const char* name, s32 flags);
+	s32 close(s32 fd);
+	size_t read(s32 fd, void* buf, size_t count);
+	size_t write(s32 fd, const void* buf, size_t count);
+	s64 seek(s32 fd, s64 offset, s32 whence);
 } // namespace vfs

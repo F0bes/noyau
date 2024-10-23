@@ -12,7 +12,7 @@ namespace vfs
 
 	void vfs_init()
 	{
-		for (int i = 0; i < MAX_FD; i++)
+		for (s32 i = 0; i < MAX_FD; i++)
 		{
 			fd_table[i].vnode = nullptr;
 			fd_table[i].flags = 0;
@@ -22,9 +22,9 @@ namespace vfs
 		vdev::vdev_init();
 	}
 
-	int fd_alloc(vnode_t* vnode, int flags)
+	s32 fd_alloc(vnode_t* vnode, s32 flags)
 	{
-		for (int i = 3; i < MAX_FD; i++)
+		for (s32 i = 3; i < MAX_FD; i++)
 		{
 			if (fd_table[i].vnode == nullptr)
 			{
@@ -38,7 +38,7 @@ namespace vfs
 		return -1;
 	}
 
-	void fd_free(int fd)
+	void fd_free(s32 fd)
 	{
 		if (fd_table[fd].refs == 1)
 		{
@@ -52,12 +52,12 @@ namespace vfs
 		}
 	}
 
-	file_descriptor_t& get_fd(int fd)
+	file_descriptor_t& get_fd(s32 fd)
 	{
 		return fd_table[fd];
 	}
 
-	int open(const char* name, int flags)
+	s32 open(const char* name, s32 flags)
 	{
 		vnode_t* vnode = vdev::vdev_find(name);
 		if (vnode == nullptr)
@@ -66,7 +66,7 @@ namespace vfs
 			return -1;
 		}
 
-		const int fd = fd_alloc(vnode, flags);
+		const s32 fd = fd_alloc(vnode, flags);
 		if (fd < 0)
 		{
 			printe("fd allocation failed\n");
@@ -75,7 +75,7 @@ namespace vfs
 
 		if (vnode->open != nullptr)
 		{
-			const int v_open_ret = vnode->open(flags);
+			const s32 v_open_ret = vnode->open(flags);
 			if (v_open_ret < 0)
 			{
 				printe("vnode open failed\n");
@@ -88,7 +88,7 @@ namespace vfs
 		return fd;
 	}
 
-	int close(int fd)
+	s32 close(s32 fd)
 	{
 		if (fd < 0 || fd >= MAX_FD)
 		{
@@ -104,7 +104,7 @@ namespace vfs
 
 		if (fd_table[fd].vnode->close != nullptr)
 		{
-			const int v_close_ret = fd_table[fd].vnode->close(fd);
+			const s32 v_close_ret = fd_table[fd].vnode->close(fd);
 			if (v_close_ret < 0)
 			{
 				printe("vnode close failed\n");
@@ -116,7 +116,7 @@ namespace vfs
 		return 0;
 	}
 
-	size_t read(int fd, void* buf, size_t count)
+	size_t read(s32 fd, void* buf, size_t count)
 	{
 		if (fd < 0 || fd >= MAX_FD)
 		{
@@ -132,7 +132,7 @@ namespace vfs
 
 		if (fd_table[fd].vnode->read != nullptr)
 		{
-			const int v_read_ret = fd_table[fd].vnode->read(fd, buf, count);
+			const s32 v_read_ret = fd_table[fd].vnode->read(fd, buf, count);
 			if (v_read_ret < 0)
 			{
 				printe("vnode read failed\n");
@@ -148,7 +148,7 @@ namespace vfs
 		return 0;
 	}
 
-	size_t write(int fd, const void* buf, size_t count)
+	size_t write(s32 fd, const void* buf, size_t count)
 	{
 		if (fd < 0 || fd >= MAX_FD)
 		{
@@ -164,7 +164,7 @@ namespace vfs
 
 		if (fd_table[fd].vnode->write != nullptr)
 		{
-			const int v_write_ret = fd_table[fd].vnode->write(fd, buf, count);
+			const s32 v_write_ret = fd_table[fd].vnode->write(fd, buf, count);
 			if (v_write_ret < 0)
 			{
 				printe("vnode write failed\n");
@@ -180,7 +180,7 @@ namespace vfs
 		return 0;
 	}
 
-	s64 seek(int fd, s64 offset, int whence)
+	s64 seek(s32 fd, s64 offset, s32 whence)
 	{
 		if (fd < 0 || fd >= MAX_FD)
 		{
@@ -196,7 +196,7 @@ namespace vfs
 
 		if (fd_table[fd].vnode->seek != nullptr)
 		{
-			const int v_seek_ret = fd_table[fd].vnode->seek(fd, offset, whence);
+			const s32 v_seek_ret = fd_table[fd].vnode->seek(fd, offset, whence);
 			if (v_seek_ret < 0)
 			{
 				printe("vnode seek failed\n");

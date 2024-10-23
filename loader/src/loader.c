@@ -12,7 +12,7 @@ extern char kelf_data[];
 
 void writeback_dcache()
 {
-	for (int i = 0; i < 128; i++)
+	for (s32 i = 0; i < 128; i++)
 	{
 		__asm__ volatile("sync\n"
 						 "cache 0x14, 0(%0)\n"
@@ -24,7 +24,7 @@ void writeback_dcache()
 
 void invalidate_icache()
 {
-	for (int i = 0; i < 256; i++)
+	for (s32 i = 0; i < 256; i++)
 	{
 		__asm__ volatile("sync\n"
 						 "cache 0x7, 0(%0)\n"
@@ -35,7 +35,7 @@ void invalidate_icache()
 	}
 }
 
-int main(void)
+s32 main(void)
 {
 	sio_puts("==== Sploot Loader ====");
 	sio_puts("Loading kernel...");
@@ -54,7 +54,7 @@ int main(void)
 
 	Elf32_Phdr* phdr = (Elf32_Phdr*)((uintptr_t)ehdr + ehdr->e_phoff);
 
-	for (int i = 0; i < ehdr->e_phnum; i++)
+	for (s32 i = 0; i < ehdr->e_phnum; i++)
 	{
 		if (phdr[i].p_type != PT_LOAD)
 		{

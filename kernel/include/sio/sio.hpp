@@ -13,7 +13,7 @@ namespace sio
 	void sio_puts(const char* str);
 
 	char sio_getc(bool block = true);
-	int sio_getsn(char* str, size_t len);
+	s32 sio_getsn(char* str, size_t len);
 } // namespace sio
 
 // Required by printf

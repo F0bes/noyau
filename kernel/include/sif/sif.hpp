@@ -23,4 +23,4 @@ namespace sif
 	constexpr u32 SYS_ID_TO_ID(u32 id) { return id & ~SIF_CMD_SYS; }
 
 	void sif_init();
-}
+} // namespace sif

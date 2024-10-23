@@ -21,7 +21,7 @@ struct sourced_string
 	constexpr sourced_string(const char* fmt, std::source_location loc = std::source_location::current())
 		: loc(loc)
 	{
-		for (int i = 0; i < 512; i++)
+		for (s32 i = 0; i < 512; i++)
 		{
 			str[i] = fmt[i];
 			if (fmt[i] == '\0')
@@ -35,8 +35,8 @@ struct sourced_string
 
 class printk
 {
-	void itoa10(int n, char* buf);
-	void itoa16(int n, char* buf);
+	void itoa10(s32 n, char* buf);
+	void itoa16(s32 n, char* buf);
 
 public:
 	printk(const char* str, ...);

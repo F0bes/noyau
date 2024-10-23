@@ -2,7 +2,7 @@
 
 #pragma once
 
-constexpr int kstrcmp(const char* a, const char* b)
+constexpr s32 kstrcmp(const char* a, const char* b)
 {
 	while (*a && *b && *a == *b)
 	{
@@ -12,7 +12,7 @@ constexpr int kstrcmp(const char* a, const char* b)
 	return *a - *b;
 }
 
-constexpr int kstrncmp(const char* a, const char* b, size_t n)
+constexpr s32 kstrncmp(const char* a, const char* b, size_t n)
 {
 	while (n-- && *a && *b && *a == *b)
 	{
@@ -56,14 +56,14 @@ constexpr void memcpy(void* dest, const void* src, size_t count)
 		*d++ = *s++;
 }
 
-constexpr void memset(void* dest, int val, size_t count)
+constexpr void memset(void* dest, s32 val, size_t count)
 {
 	char* d = (char*)dest;
 	while (count--)
 		*d++ = val;
 }
 
-constexpr long strtol(const char* str, char** endptr, int base)
+constexpr long strtol(const char* str, char** endptr, s32 base)
 {
 	long ret = 0;
 	bool neg = false;
@@ -76,7 +76,7 @@ constexpr long strtol(const char* str, char** endptr, int base)
 
 	while (*str)
 	{
-		int digit = 0;
+		s32 digit = 0;
 		if (*str >= '0' && *str <= '9')
 		{
 			digit = *str - '0';

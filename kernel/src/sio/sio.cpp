@@ -45,13 +45,13 @@ namespace sio
 		return b;
 	}
 
-	int sio_getsn(char* str, size_t len)
+	s32 sio_getsn(char* str, size_t len)
 	{
 		char* s = str;
 
 		while (--len)
 		{
-			int c;
+			s32 c;
 
 			c = sio_getc(true);
 			if (c == '\n' || c == '\r')
