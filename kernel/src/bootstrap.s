@@ -40,8 +40,7 @@ __mask_irqs:
 	nop
 
 __init_reg:
-	la $a0, __kern_stack
-	addiu $a0, 0x4000
+	la $a0, __kern_stack_top
 	move $sp, $a0
 	move $fp, $a0
 	la $gp, _gp

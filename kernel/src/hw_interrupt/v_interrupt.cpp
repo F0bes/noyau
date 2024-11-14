@@ -175,7 +175,6 @@ void _vec_c_interrupt(void)
 		// 9 channels
 		const u32 lz = _plzcw(d_stat) - 15;
 		const u32 cause = 15 - lz;
-
 		if(cause > intc::DMAC_CAUSE_CNT)
 		{
 			printe("v_interrupt INT1 out of range. D_STAT = %x\n", d_stat);

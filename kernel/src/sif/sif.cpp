@@ -4,6 +4,7 @@
 #include "mmio/sif.hpp"
 #include "mmio/dma.hpp"
 #include "memutil.hpp"
+#include "memory.hpp"
 #include "util/util.hpp"
 #include "debug/debug.hpp"
 #include "intc/intc.hpp"
@@ -12,8 +13,49 @@ namespace sif
 {
 	static u8* sif0_buf;
 	static u8* sif1_buf;
+	constexpr u32 sif_buffer_size = 0x1000;
+
 	static iop_ptr_t iop_smcom;
 	static u32 sys_regs[32] = {0};
+
+	struct sif_rpc_pkt_header_t
+	{
+		s32 rec_id;
+		void* pkt_addr;
+		s32 rpc_id;
+	};
+
+	struct sif_bind_pkt_t
+	{
+		sif_rpc_pkt_header_t header;
+		sif_rpc_client_t* client;
+		u32 server_id;
+	} STRUCT_ALIGNED_PACKED;
+
+	struct sif_rpc_end_pkt_t
+	{
+		sif_rpc_pkt_header_t header;
+		sif_rpc_client_t* client;
+		u32 client_id;
+
+		u32 server;
+		u32 server_buf;
+		void* client_buf;
+	} STRUCT_ALIGNED_PACKED;
+
+	struct sif_rpc_call_pkt_t
+	{
+		sif_rpc_pkt_header_t header;
+		sif_rpc_client_t* client;
+		u32 rpc_id;
+
+		u32 send_size;
+		u32 recv_addr;
+		u32 recv_size;
+		u32 recv_mode;
+
+		u32 server;
+	} STRUCT_ALIGNED_PACKED;
 
 	struct sif_reset_pkt_t
 	{
@@ -29,7 +71,7 @@ namespace sif
 		u32 data_addr;
 		u32 cmd;
 		u32 opt;
-	} STRUCT_PACKED;
+	} STRUCT_ALIGNED_PACKED;
 
 	struct sif_iop_dmatag_t
 	{
@@ -59,18 +101,35 @@ namespace sif
 
 	void sif1_write(const sif_cmd_header_t* header, bool ert, bool irq, iop_ptr_t dst, const void* src, size_t size)
 	{
-		const size_t size_aligned = (((header ? sizeof(sif_cmd_header_t) : 0) + size) & ~0xF) + 0x10;
-		const sif_iop_dmatag_t tag = {dst, irq, ert, size_aligned / 4};
-		const size_t dma_size = sizeof(sif_iop_dmatag_t) + size_aligned;
+		const size_t header_size = header ? sizeof(*header) : 0;
+		const size_t aligned_size = ((header_size + size) & ~0xF) + 0x10;
+		const sif_iop_dmatag_t tag = {dst, irq, ert, aligned_size / 4};
+		const size_t dma_size = sizeof(sif_iop_dmatag_t) + aligned_size;
 
-		if (!size_aligned || !header)
+		if (!aligned_size)
 			return;
 
 		u8* dma_buf = sif1_buf;
 
 		memcpy(dma_buf, &tag, sizeof(tag));
-		memcpy(dma_buf + sizeof(tag), header, sizeof(sif_cmd_header_t));
-		memcpy(dma_buf + sizeof(tag) + sizeof(sif_cmd_header_t), src, size);
+		memcpy(dma_buf + sizeof(tag), header, header_size);
+		memcpy(dma_buf + sizeof(tag) + header_size, src, size);
+
+		if (_l32(SIF1_CHCR) & 0x100)
+		{
+			printw("SIF1 DMA already in progress, waiting\n");
+		}
+
+		for (int i = 0; i < 2000000; i++)
+		{
+			if (!(_l32(SIF1_CHCR) & 0x100))
+				break;
+		}
+		if (_l32(SIF1_CHCR) & 0x100)
+		{
+			printe("SIF1 DMA still in progress, aborting\n");
+			return;
+		}
 
 		_s32(SIF1_MADR, _phys(dma_buf));
 
@@ -81,7 +140,9 @@ namespace sif
 	void sif_cmd(u32 cmd, u32 opt, const void* pkt, size_t pkt_size, iop_ptr_t dst, const void* src, size_t size)
 	{
 		const sif_cmd_header_t header = {sizeof(sif_cmd_header_t) + pkt_size, size, dst, cmd, opt};
-
+		// Kick data
+		sif1_write(NULL, false, false, dst, src, size);
+		// Kick header/pkt
 		sif1_write(&header, true, true, iop_smcom, pkt, pkt_size);
 	}
 
@@ -104,6 +165,8 @@ namespace sif
 
 	s32 sif0_handler_id = -1;
 	intc::handler_fun_t sif0_handler = [](u32 cause) {
+		printi("SIF0 DMA Interrupt!\n");
+		_s32(D_STAT, 1 << 5);
 		if ((_l32(SIF0_CHCR) & 0x100))
 		{
 			printw("SIF0 DMA interrupted but not completed\n");
@@ -133,6 +196,10 @@ namespace sif
 		{
 			printw("SIF0 SIF USR command 0x%08X not implemented\n", header->cmd);
 		}
+
+		_s32(SIF0_MADR, 0);
+		_s32(SIF0_QWC, 0);
+		_s32(SIF0_CHCR, 0x184);
 	};
 
 	void sif_handlers_install()
@@ -160,13 +227,30 @@ namespace sif
 		sif_sys_cmd_handlers[SYS_ID_TO_ID(SIF_CMD_SYS_RESET)] = [](const sif_cmd_header_t* header) {
 			printw("SIF0 SIF SYS Reset\n");
 		};
+
+		sif_sys_cmd_handlers[SYS_ID_TO_ID(SIF_CMD_RPC_END)] = [](const sif_cmd_header_t* header) {
+			const sif_rpc_end_pkt_t* pkt = reinterpret_cast<const sif_rpc_end_pkt_t*>(header + 1);
+
+			printd("SIF0 SIF RPC End (client ID %X)\n", pkt->client_id);
+
+			switch (pkt->client_id)
+			{
+				case SIF_CMD_RPC_CALL:
+					break;
+				case SIF_CMD_RPC_BIND:
+					printd("SIF EE->IOP BIND complete\n");
+					pkt->client->server = pkt->server;
+					pkt->client->server_buf = pkt->server_buf;
+			}
+			pkt->client->ready = true;
+		};
 	}
 
 	void sif_init()
 	{
 		sif_dma_shutdown();
-		sif0_buf = new u8[0x1000];
-		sif1_buf = new u8[0x1000];
+		sif0_buf = new u8[sif_buffer_size];
+		sif1_buf = new u8[sif_buffer_size];
 
 		// Retrieve the IOP's dma buffer
 		iop_smcom = _l32(SIF_SMCOM);
@@ -200,11 +284,63 @@ namespace sif
 
 		sif_cmd(SIF_CMD_SYS_INIT, 1, nullptr, 0, nullptr, nullptr, 0);
 
-		printk("SIF RPC Init. Waiting for IOP to respond...\n");
+		printi("SIF RPC Init. Waiting for IOP to respond...\n");
 
 		while (sys_regs[0] == 0)
 			;
 
-		printk("IOP responded. RPC is alive\n");
+		printi("IOP responded. RPC is alive\n");
+
+		// IOP modules take some time to init
+		for (int i = 0; i < 30000000; i++)
+			asm volatile("nop\nnop\nnop\n");
+	}
+
+	s32 sif_bind(sif_rpc_client_t* client, u32 server_id)
+	{
+		const sif_bind_pkt_t pkt = {
+			.header = {0, nullptr, 0},
+			.client = client,
+			.server_id = server_id,
+		};
+		client->ready = false;
+		client->client_size = sif_buffer_size;
+		client->client_buf = kmalloc(sif_buffer_size);
+		client->server = 0;
+		sif_cmd(SIF_CMD_RPC_BIND, 0, &pkt, sizeof(pkt), nullptr, nullptr, 0);
+
+		while (!client->ready)
+			;
+		return 0;
+	}
+
+	s32 sif_call(sif_rpc_client_t* client, u32 rpc_id, const void* send_buf, size_t send_size, void* recv_buf, u32 recv_size)
+	{
+		const sif_rpc_call_pkt_t pkt = {
+			.header = {0, nullptr, 0},
+			.client = client,
+			.rpc_id = rpc_id,
+			.send_size = send_size,
+			.recv_addr = _phys(client->client_buf),
+			.recv_size = recv_size,
+			.recv_mode = 1,
+			.server = client->server,
+		};
+
+		client->ready = false;
+		if (client->client_size < send_size)
+		{
+			printw("RPC client buffer too small\n");
+			return -1;
+		}
+
+		sif_cmd(SIF_CMD_RPC_CALL, 0, &pkt, sizeof(pkt), client->server_buf, send_buf, send_size);
+		while (!client->ready)
+			;
+
+		memcpy(recv_buf, client->client_buf, recv_size);
+
+		printi("RPC call complete\n");
+		return 0;
 	}
 } // namespace sif

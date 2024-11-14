@@ -402,14 +402,15 @@ namespace gs
 		{
 			vterm_buf_ptr = vterm_buf;
 			for (s32 i = 0; i < 80; i++)
-				vterm_buf_ptr[i] = ' ';
+				vterm_buf[i] = ' ';
 		}
 
 		if (c == '\n')
 		{
 			if (vterm_buf_ptr + 80 >= vterm_buf_end)
 				vterm_buf_ptr = vterm_buf;
-			vterm_buf_ptr += 80 - ((vterm_buf_ptr - &vterm_buf[0]) % 80);
+			else
+				vterm_buf_ptr += 80 - ((vterm_buf_ptr - &vterm_buf[0]) % 80);
 		}
 		else
 		{

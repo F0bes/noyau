@@ -51,7 +51,7 @@ void* kmalloc(size_t size)
 	heap_allocated_block->free = false;
 	last_block = heap_allocated_block;
 
-	heap_ptr += size + sizeof(block_t);
+	heap_ptr += (size + sizeof(block_t) + 15) & ~15;
 
 	return (void*)(heap_allocated_block + 1);
 }

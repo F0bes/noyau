@@ -15,6 +15,7 @@ target_compile_options(kernel PRIVATE
 	-ffreestanding
 	-nostdlib
 	-ffixed-k0
+	-g
 	-include ${CMAKE_CURRENT_SOURCE_DIR}/include/common_typedefs.hpp
 )
 
@@ -26,7 +27,7 @@ target_link_options(kernel PRIVATE
 	-T${CMAKE_CURRENT_SOURCE_DIR}/kernel.ld
 	-ffreestanding
 	-nostdlib
-	-Wl,--orphan-handling=error
+#	-Wl,--orphan-handling=error
 )
 
 target_link_libraries(kernel PRIVATE

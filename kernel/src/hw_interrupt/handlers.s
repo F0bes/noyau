@@ -20,14 +20,13 @@ nop
 	la $k0, __excep_interrupt_handler_frame
 	sq $s0, 0x100($k0)
 	sq $zero, 0x1A0($k0) # frames don't save k0
-	sq $sp, 0x1D0($k0)
 	sq $ra, 0x1F0($k0)
 
-	# Change the stack size in interrupt.c if you change this
-	la $sp, __excep_interrupt_stack + 8192
 	move $s0, $k0
 	jal _save_ee_frame
 	nop
+
+	la $sp, __excep_interrupt_stack + 8192
 .endm
 
 .macro mac_load_frame
@@ -63,11 +62,8 @@ li $a1, 0x00000002
 
 .section .vec.common, "ax", @progbits
 __vec_excep_common:
-mac_save_frame
-jal _vec_c_common
+j __excep_common
 nop
-mac_load_frame
-mac_exit_vector
 
 .section .vec.interrupt, "ax", @progbits
 __vec_excep_interrupt:
@@ -78,6 +74,13 @@ nop
 __excep_interrupt:
 mac_save_frame
 jal _vec_c_interrupt
+nop
+mac_load_frame
+mac_exit_vector
+
+__excep_common:
+mac_save_frame
+jal _vec_c_common
 nop
 mac_load_frame
 mac_exit_vector

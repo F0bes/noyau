@@ -1,9 +1,7 @@
 MEMORY
 {
 	vec (rx) : org = 0x80000000, len = 4k
-	ram (wx) : org = 0x80001000, len = 128k
-	heap (wx) : org = 0x80021000, len = 128k
-	misc (wx) : org = 0x80041000, len = 1m
+	ram (wx) : org = 0x80001000, len = 1M
 }
 
 ENTRY(__start)
@@ -36,28 +34,28 @@ SECTIONS
 		PROVIDE(__bss_end = .);
 	} > ram
 
+	__kern_stack_size = 4k;
+
+	.stack ALIGN(128) : {
+		PROVIDE(__kern_stack = .);
+		. = . + __kern_stack_size;
+		PROVIDE(__kern_stack_top = .);
+	} > ram
+
 	.heap ALIGN(128) : {
 		PROVIDE(__heap_start = .);
-		. = . + 128k;
+		. = . + 256k;
 		PROVIDE(__heap_end = .);
-	} > heap
-
-	.misc ALIGN(128) : {
-		PROVIDE(__misc_start = .);
-		*(.misc)
-		PROVIDE(__misc_end = .);
-	} > misc
-
-	PROVIDE(__kern_stack = ALIGN(128));
+	} > ram
 
 	/DISCARD/ : {
-		*(.debug*)
+		/*(.debug*)
 		*(.mdebug*)
 		*(.gnu.attributes)
 		*(.pdr)
 		*(.comment)
 		*(.MIPS.abiflags)
 		*(.reginfo)
-		*(.rel.dyn) 
+		*(.rel.dyn) */
 	}
 }

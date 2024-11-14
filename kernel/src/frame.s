@@ -1,5 +1,4 @@
 # SPDX-License-Identifier: MPL-2.0
-
 .text
 
 .set noreorder
@@ -39,9 +38,9 @@ _save_ee_frame:
 	sq $k0, 0x1A0($s0)
 	sq $k1, 0x1B0($s0)
 	sq $gp, 0x1C0($s0)
-	#sq $sp, 0x1D0($s0)
+	sq $sp, 0x1D0($s0)
 	sq $fp, 0x1E0($s0)
-	#sq $ra, 0x1F0($s0)
+	sq $ra, 0x1F0($s0)
 	jr $ra
 	nop
 

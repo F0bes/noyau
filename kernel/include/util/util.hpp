@@ -105,3 +105,12 @@ constexpr long strtol(const char* str, char** endptr, s32 base)
 
 	return neg ? -ret : ret;
 }
+
+constexpr char* strcpy(char* dest, const char* src)
+{
+	char* d = dest;
+	while (*src)
+		*d++ = *src++;
+	*d = '\0';
+	return dest;
+}
