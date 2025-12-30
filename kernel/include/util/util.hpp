@@ -114,3 +114,17 @@ constexpr char* strcpy(char* dest, const char* src)
 	*d = '\0';
 	return dest;
 }
+
+
+class ScopedDisableInterrupts
+{
+	public:
+		constexpr ScopedDisableInterrupts()
+		{
+			asm volatile("di");
+		}
+		constexpr ~ScopedDisableInterrupts()
+		{
+			asm volatile("ei");
+		}
+};

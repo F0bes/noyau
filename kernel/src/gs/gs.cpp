@@ -245,6 +245,66 @@ namespace gs
 
 	static u32 vterm_itex_ptr = 0;
 	static u32 vterm_pal_ptr = 0x56000 >> 6;
+
+	static s32 vterm_vsync_handler_id = -1;
+
+	static intc::handler_fun_t vterm_vsync_handler = [](u32 cause) {
+		qword_t gif_packet_stack[20];
+		qword_t* gif_packet = (qword_t*)_kseg1(gif_packet_stack);
+		qword_t* q = gif_packet;
+		pack_giftag(q, {3, 1, 1, 0x06 | (0 << 4), 0, 1, GIF_REG_A_D});
+		pack_rgbaq(q, {0x7F, 0x7F, 0, 0x7F, 0});
+		pack_xyz(q, {0, 0, 1});
+		pack_xyz(q, {640 << 4, 448 << 4, 1});
+		_s32(GIF_QWC, q - gif_packet);
+		_s32(GIF_MADR, _phys(gif_packet));
+		_s32(GIF_CHCR, 0x101);
+		while (_l32(GIF_CHCR) & 0x100)
+			;
+		q = gif_packet;
+		pack_giftag(q, {4, 1, 1, 0x06 | (1 << 4) | (1 << 8), 0, 1, GIF_REG_A_D});
+		qword_t* reg_start = q;
+		u32 x_cord = 0;
+		u32 y_cord = 0;
+		for (size_t i = 0; i < sizeof(vterm_buf); i++)
+		{
+			if (x_cord >= 80)
+			{
+				x_cord = 0;
+				y_cord++;
+			}
+
+			const char c = vterm_buf[i];
+
+			if (c == ' ')
+			{
+				x_cord++;
+				continue;
+			}
+			else if (c == '\0')
+			{
+				break;
+			}
+
+			const u32 x = c % 16;
+			const u32 y = c / 16;
+
+			pack_uv(q, {(x * 8) << 4, (y * 16) << 4});
+			pack_xyz(q, {x_cord * 8 << 4, y_cord * 16 << 4, 1});
+			pack_uv(q, {((x * 8) + 7) << 4, ((y * 16) + 15) << 4});
+			pack_xyz(q, {((x_cord * 8) + 7) << 4, ((y_cord * 16) + 16) << 4, 1});
+
+			while (_l32(GIF_CHCR) & 0x100)
+				;
+			_s32(GIF_QWC, q - gif_packet);
+			_s32(GIF_MADR, _phys(gif_packet));
+			_s32(GIF_CHCR, 0x101);
+
+			q = reg_start;
+			x_cord++;
+		}
+	};
+
 	void vterm_init()
 	{
 		// Upload the font itex
@@ -317,72 +377,12 @@ namespace gs
 
 		printk("### VTERM Font Displayed\n");
 		delete[] gif_packet;
+
+		vterm_vsync_handler(0);
 	}
-
-	// interrupt handler typdef intc::hander_t
-
-	static s32 vterm_vsync_handler_id = -1;
-
-	static intc::handler_fun_t vterm_vsync_handler = [](u32 cause) {
-		qword_t gif_packet_stack[20];
-		qword_t* gif_packet = (qword_t*)_kseg1(gif_packet_stack);
-		qword_t* q = gif_packet;
-		pack_giftag(q, {3, 1, 1, 0x06 | (0 << 4), 0, 1, GIF_REG_A_D});
-		pack_rgbaq(q, {0x7F, 0x7F, 0, 0x7F, 0});
-		pack_xyz(q, {0, 0, 1});
-		pack_xyz(q, {640 << 4, 448 << 4, 1});
-		_s32(GIF_QWC, q - gif_packet);
-		_s32(GIF_MADR, _phys(gif_packet));
-		_s32(GIF_CHCR, 0x101);
-		while (_l32(GIF_CHCR) & 0x100)
-			;
-		q = gif_packet;
-		pack_giftag(q, {4, 1, 1, 0x06 | (1 << 4) | (1 << 8), 0, 1, GIF_REG_A_D});
-		qword_t* reg_start = q;
-		u32 x_cord = 0;
-		u32 y_cord = 0;
-		for (size_t i = 0; i < sizeof(vterm_buf); i++)
-		{
-			if (x_cord >= 80)
-			{
-				x_cord = 0;
-				y_cord++;
-			}
-
-			const char c = vterm_buf[i];
-
-			if (c == ' ')
-			{
-				x_cord++;
-				continue;
-			}
-			else if (c == '\0')
-			{
-				break;
-			}
-
-			const u32 x = c % 16;
-			const u32 y = c / 16;
-
-			pack_uv(q, {(x * 8) << 4, (y * 16) << 4});
-			pack_xyz(q, {x_cord * 8 << 4, y_cord * 16 << 4, 1});
-			pack_uv(q, {((x * 8) + 7) << 4, ((y * 16) + 15) << 4});
-			pack_xyz(q, {((x_cord * 8) + 7) << 4, ((y_cord * 16) + 16) << 4, 1});
-
-			while (_l32(GIF_CHCR) & 0x100)
-				;
-			_s32(GIF_QWC, q - gif_packet);
-			_s32(GIF_MADR, _phys(gif_packet));
-			_s32(GIF_CHCR, 0x101);
-
-			q = reg_start;
-			x_cord++;
-		}
-	};
 
 	void vterm_hook()
 	{
-		//vterm_vsync_handler(0);
 		intc::register_handler(intc::CAUSE::VBON, vterm_vsync_handler);
 		intc::enable_interrupt(intc::CAUSE::VBON);
 	}

@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 
+set(CMAKE_SYSTEM_NAME Generic) # Stop CMake from injecting macOS compiler arguments..
 set(CMAKE_C_STANDARD 23)
 set(CMAKE_CXX_STANDARD 23)
 project(noyau C CXX ASM)
